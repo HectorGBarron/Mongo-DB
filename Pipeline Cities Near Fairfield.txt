@@ -1,0 +1,103 @@
+[{$facet: {
+  "Fairfield": 
+  [ 
+    {
+      $match: 
+          {
+            city: 'FAIRFIELD',
+            state: 'CT'
+          }
+    },
+    {
+      $project: 
+        {
+          x:
+            {
+              $arrayElemAt: ['$loc',0]
+            },
+          y:
+          {
+            $arrayElemAt: ['$loc',1]
+          }
+        }
+
+            },
+    {
+      $group: 
+        {
+          _id: "Fairfield",
+          averageX: {$avg: '$x'},
+          averageY: {$avg: '$y'}
+        }
+    }
+
+
+          ],
+  "OtherCities": 
+  [ 
+    {
+      $match: 
+          {
+            city: {$ne:['FAIRFIELD']},
+            state: 'CT'
+          }
+    },
+    {
+      $project: 
+        {
+          x:
+            {
+              $arrayElemAt: ['$loc',0]
+            },
+          y:
+          {
+            $arrayElemAt: ['$loc',1]
+          },
+          state:1,
+          city:1,
+          pop:1
+        }
+
+            }
+
+
+          ]
+}}, {$unwind: {
+  path: "$OtherCities"
+}}, {$unwind: {
+  path: "$Fairfield"
+}}, {$addFields: {
+"Dist":{$sqrt:
+          [{$add:
+            [{$pow:
+                [{$subtract:
+                    ["$OtherCities.x","$Fairfield.averageX"]
+                  },2
+                ]
+              }
+            ,{$pow:
+                [{$subtract:
+                    ["$OtherCities.y","$Fairfield.averageY"]
+                  },2
+                  ]
+                }
+              ]
+            }
+          ]
+
+          },
+"SortBy":{$subtract:["$OtherCities.pop",0]}
+
+}}, {$match: {
+  Dist:{$lte:2}
+}}, {$sort: {
+  "SortBy":-1
+}}, {$project: {
+ OtherCities:1,
+
+ }}, {$project: {
+  city:"$OtherCities.city", 
+  state:"$OtherCities.state",
+  pop:"$OtherCities.pop"
+
+  }}]
